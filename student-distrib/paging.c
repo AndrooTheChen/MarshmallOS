@@ -171,6 +171,7 @@ void paging_init(int pid){
  
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////
 
 /*Initialize page directory's entry to all 0
  *Input: ind the index of page directory
