@@ -126,8 +126,10 @@ int32_t execute(const uint8_t * command){
     /* Ensure the given command is a valid executable file */
     if (verify_file(command, inFile, &v_addr) == -1) { return -1; }
 
-    /* Create a new PID for the process to be executed */
+    /* Initialize a new PID for the new process to be executed and update process table */
     pid = get_pid();
+    proc_state[pid] = 1;
+    pcb_init(pid);
 
     /* Create a new page directory entry for the process */
     paging_init(pid);
@@ -136,11 +138,7 @@ int32_t execute(const uint8_t * command){
     read_dentry_by_name(inFile, &d);
     read_f(d.inode, 0, (uint8_t)0x08048000, 0x400000);
     
-    /* Set process as in-use */
-    proc_state[pid] = 1;
 
-    /* Initialize PCB for new process */
-    pcb_init(pid);
 
     /* Create new PCB */
     //pcb_t* pcb = (pcb_t *)(KSTACK_BOT - PCB_SIZE * curr);
