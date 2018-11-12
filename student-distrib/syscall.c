@@ -70,6 +70,7 @@ void pcb_init(int pid){
 }
 
 
+<<<<<<< HEAD
 
 /*
 * get_pid
@@ -80,18 +81,40 @@ void pcb_init(int pid){
 *   INPUTS: none
 *   OUTPUTS: int - PID (0-5)
 *   RETURN VALUE: none
+=======
+/*
+* get_pid
+*   DESCRIPTION: Searches in process table for an unused PID. Returns
+*       first available PID if found and sets in-use bit to 1 in the
+*       process table.
+*
+*   INPUTS: none
+*   OUTPUTS:  PID
+*   RETURN VALUE: PID (0-5) on success, -1 on failure
+*	SIDE EFFECTS : Sets PID entry to used if a free PID is found
+>>>>>>> 7394767c8f444da7d862862759aa40200b639c9d
 */
 int get_pid(){
     int i;
 
+<<<<<<< HEAD
     /* Look thru process table for an inactive process (marked 0) and return it */
     for(i = 0; i < PROC_NUM; i++){
         if(proc_state[i] == 0){
+=======
+    for (i = 0; i < PROC_NUM; i++) {
+        if (proc_state[i] == 0){
+            /* set process as in-use and return PID */
+            proc_state[i] = 1;
+>>>>>>> 7394767c8f444da7d862862759aa40200b639c9d
             return i;
         }
     }
 
+<<<<<<< HEAD
     /* Return -1 max number of processes allowed are already in use */
+=======
+>>>>>>> 7394767c8f444da7d862862759aa40200b639c9d
     return -1;
 }
 
