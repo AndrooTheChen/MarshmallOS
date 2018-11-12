@@ -8,17 +8,19 @@
 #define BYTE_LEN           4
 #define START_ADDR        24
 #define ADDR_OFFSET        8
+#define RESERV_FILES       2
 
 
-#define PROC_NUM 6
-#define PCB_SIZE 0x2000
-#define KSTACK_BOT 0x800000-0x2000
-#define ASM 1
+#define PROC_NUM           6
+#define PCB_SIZE           0x2000
+#define KSTACK_BOT         0x800000-0x2000
+#define ASM                1
 
+/* Current PID */
 static int curr = 0;
-//device_t rtc = { rtc_read, rtc_write, rtc_open, rtc_close };
-int proc_state[PROC_NUM] = {0, 0, 0, 0, 0, 0};
 
+/* Table of active and inactive processes (active = 1, inactive = 0) */
+int proc_state[PROC_NUM] = {0, 0, 0, 0, 0, 0};
 
 /*
 * pcb_init
@@ -36,7 +38,7 @@ void pcb_init(int pid){
     
     /* Create PCB for current process and assign PID */
     pcb_t* pcb= (pcb_t *)(KSTACK_BOT - PCB_SIZE * pid);
-    pcb->pid=pid;
+    pcb->pid = pid;
 
     /* Fill in file descriptors for reserved file stdin for every new process */
     pcb->file_array[0].read  = terminal_read_wrap;///init stdin and stdout
@@ -53,27 +55,43 @@ void pcb_init(int pid){
     pcb->file_array[1].flag  = 1;
 
     /* Set remaining files as unused (flag = 0) for every new process */
-    for (i = 2; i < FDESC_SIZE; i++){
+    for (i = RESERV_FILES; i < FDESC_SIZE; i++){
         pcb->file_array[i].flag = 0;
     }
 
     /* Check if this is the first process, and if it is, set parent ptr to NULL */
-    if (pid == 0){
+    if (pid == 0) {
         pcb->parent = NULL;
     }
-    else{
+    else {
         /* Set PCB parent address relative to previous PCB */
         pcb->parent = (int32_t *)(KSTACK_BOT - PCB_SIZE * pid + PCB_SIZE);
     }
 }
 
+
+
+/*
+* get_pid
+*   DESCRIPTION: Finds and returns a valid PID based on how many processes
+*       are currently active. Returns -1 if max number of processes (six)
+*       are already active.
+*
+*   INPUTS: none
+*   OUTPUTS: int - PID (0-5)
+*   RETURN VALUE: none
+*/
 int get_pid(){
     int i;
-    for(i=0;i<PROC_NUM;i++){
-        if(proc_state[i]==0){
+
+    /* Look thru process table for an inactive process (marked 0) and return it */
+    for(i = 0; i < PROC_NUM; i++){
+        if(proc_state[i] == 0){
             return i;
         }
     }
+
+    /* Return -1 max number of processes allowed are already in use */
     return -1;
 }
 
@@ -102,36 +120,59 @@ int32_t execute(const uint8_t * command){
     uint32_t v_addr;            /* virtual addr of first instruction */
     dentry_t d;
     int pid;
-    //u parse/check
-    /* Ensure the given command is a valid executable file */
-
     
+    /* Ensure the given command is a valid executable file */
     if (verify_file(command, inFile, &v_addr) == -1) { return -1; }
 
-    /*
-    pid=get_pid();
-    //u Paging
+    /* Create a new PID for the process to be executed */
+    pid = get_pid();
+
+    /* Create a new page directory entry for the process */
     paging_init(pid);
 
     //u User-level Program Loader
 
 
-    read_dentry_by_name(inFile, d);
-    read_f(d.inode, (uint8_t)0x08048000);
+    read_dentry_by_name(inFile, &d);
+    read_f(d.inode, 0, (uint8_t)0x08048000, 4000000);
     
-    //u Create PCB
-    
-    proc_state[pid]=1;
+    /* Set process as in-use */
+    proc_state[pid] = 1;
+
+    /* Initialize PCB for new process */
     pcb_init(pid);
 
-    //u Context Switch 
-
-*/
-
     /* Create new PCB */
-    pcb_t* pcb = (pcb_t *)(KSTACK_BOT - PCB_SIZE * curr);
+    //pcb_t* pcb = (pcb_t *)(KSTACK_BOT - PCB_SIZE * curr);
 
+    /* Update TSS fields */
     tss.esp0 = KSTACK_BOT + PCB_SIZE - PCB_SIZE * curr - 4;
+
+    /* Set up IRET context switch */
+    asm volatile(
+        "cli;"
+        "movl %0, %%ds;"
+        "pushl %1;"
+        "pushl %2;"
+        "pushfl;"
+        "popl %%edx;"
+        "orl %3, %%edx;"
+        "pushl %%edx;"
+        "pushl %4;"
+        "pushl %5;"
+        "iret;"
+        :
+        :
+        "r" (0x2B),
+        "r" (0x2B),
+        "r" (0x83FFFFC),
+        "r" (0x200),
+        "r" (0x23),
+        "r" (v_addr)
+    );
+
+    /* Update current PID to PID just created */
+    curr = pid;
     
   /* __asm__ volatile(
         "cli
@@ -163,33 +204,35 @@ int32_t execute(const uint8_t * command){
      
      
 	/* Saving the current ESP and EBP into the PCB struct */
+    /*
 	asm volatile("			\n\
 				movl %%ebp, %%eax 	\n\
 				movl %%esp, %%ebx 	\n\
 			"
 			:"=a"(pcb->parent_ebp), "=b"(pcb->parent_esp));
+    */
 
-        asm volatile(
-                 "cli;"
-                 "mov $0x2B, %%ax;"
-                 "mov %%ax, %%ds;"
-                 "movl $0x83FFFFC, %%eax;"
-                 "pushl $0x2B;"
-                 "pushl %%eax;"
-                 "pushfl;"
-                 "popl %%edx;"
-                 "orl $0x200, %%edx;"
-                 "pushl %%edx;"
-                 "pushl $0x23;"
-                 "pushl %0;"
-                 "iret;"
-                 "RETURN_FROM_IRET:;"
-                 "LEAVE;"
-                 "RET;"
-                 :	/* no outputs */
-                 :"r"(v_addr)	/* input */
-                 :"%edx","%eax"	/* clobbered register */
-                 );
+        // asm volatile(
+        //          "cli;"
+        //          "mov $0x2B, %%ax;"
+        //          "mov %%ax, %%ds;"
+        //          "movl $0x83FFFFC, %%eax;"
+        //          "pushl $0x2B;"
+        //          "pushl %%eax;"
+        //          "pushfl;"
+        //          "popl %%edx;"
+        //          "orl $0x200, %%edx;"
+        //          "pushl %%edx;"
+        //          "pushl $0x23;"
+        //          "pushl %0;"
+        //          "iret;"
+        //          "RETURN_FROM_IRET:;"
+        //          "LEAVE;"
+        //          "RET;"
+        //          :	/* no outputs */
+        //          :"r"(v_addr)	/* input */
+        //          :"%edx","%eax"	/* clobbered register */
+        //          );
 
     return 0;
 }
@@ -210,8 +253,8 @@ int32_t execute(const uint8_t * command){
                    user address into v_addr
 */
 int8_t verify_file(const uint8_t * cmd, uint8_t inFile[CMD_LIMIT], uint32_t * v_addr) {
-    int i, j;
-    uint8_t addrBuf[BYTE_LEN];
+    int i; //int j;
+    //uint8_t addrBuf[BYTE_LEN];
 
     /* Make sure passed in ptr is not a nullptr */
     if (cmd == NULL) { return -1; }
@@ -234,13 +277,7 @@ int8_t verify_file(const uint8_t * cmd, uint8_t inFile[CMD_LIMIT], uint32_t * v_
     if (strncmp(fileBuf, magicBuf, BYTE_LEN)) { return -1; }
 
     /* Retrieve address for first instruction from bytes 24-27 */
-    read_f_by_name(inFile, START_ADDR, addrBuf, BYTE_LEN);
-
-    /* Convert from string to integer address */
-    v_addr = 0;
-    for (j = 0; j < BYTE_LEN; j++) {
-        v_addr += (addrBuf[j] << (ADDR_OFFSET * j));
-    }
+    read_f_by_name(inFile, START_ADDR, (uint8_t*)v_addr, BYTE_LEN);
 
     return 0;
 }

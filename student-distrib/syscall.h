@@ -26,14 +26,16 @@
 /* https://stackoverflow.com/questions/9932212/jump-table-examples-in-c */
 typedef struct file_desc_t { 
     //func_pointer * pointer;
-    int (*open)(uint32_t,uint32_t, uint8_t* , uint32_t); ///////*********possible bug change to uint ***********//////////////////////////
-    int (*close)(uint32_t,uint32_t, uint8_t* , uint32_t); ///////*********possible bug change to uint ***********//////////////////////////
-    int (*read)(uint32_t,uint32_t, uint8_t* , uint32_t);///////*********possible bug change to uint ***********//////////////////////////
-    int (*write)(uint32_t,uint32_t, uint8_t* , uint32_t);///////*********possible bug change to uint ***********//////////////////////////
+    int (*open)(uint32_t, uint32_t, uint8_t* , uint32_t); ///////*********possible bug change to uint ***********//////////////////////////
+    int (*close)(uint32_t, uint32_t, uint8_t* , uint32_t); ///////*********possible bug change to uint ***********//////////////////////////
+    int (*read)(uint32_t, uint32_t, uint8_t* , uint32_t);///////*********possible bug change to uint ***********//////////////////////////
+    int (*write)(uint32_t, uint32_t, uint8_t* , uint32_t);///////*********possible bug change to uint ***********//////////////////////////
 
     int32_t inode, file_pos, flag;
 } file_desc_t;
 
+
+/* PCB struct */
 typedef struct pcb_t{
     int32_t *parent;
     int32_t parent_esp;
@@ -42,7 +44,6 @@ typedef struct pcb_t{
     char bitmap[FDESC_SIZE];
     int32_t pid;
 } pcb_t;
-
 
 
 /* System calls */
