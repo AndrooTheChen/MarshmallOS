@@ -49,13 +49,29 @@ void pcb_init(int pid){
     }
 }
 
+
+/*
+* get_pid
+*   DESCRIPTION: Searches in process table for an unused PID. Returns
+*       first available PID if found and sets in-use bit to 1 in the
+*       process table.
+*
+*   INPUTS: none
+*   OUTPUTS:  PID
+*   RETURN VALUE: PID (0-5) on success, -1 on failure
+*	SIDE EFFECTS : Sets PID entry to used if a free PID is found
+*/
 int get_pid(){
     int i;
-    for(i=0;i<PROC_NUM;i++){
-        if(proc_state[i]==0){
+
+    for (i = 0; i < PROC_NUM; i++) {
+        if (proc_state[i] == 0){
+            /* set process as in-use and return PID */
+            proc_state[i] = 1;
             return i;
         }
     }
+
     return -1;
 }
 
