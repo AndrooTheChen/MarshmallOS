@@ -20,31 +20,49 @@ static int curr = 0;
 int proc_state[PROC_NUM] = {0, 0, 0, 0, 0, 0};
 
 
+/*
+* pcb_init
+*   DESCRIPTION: Initializes a new process control block for a process given
+*       a process identification number (PID).
+*
+*   INPUTS: int pid - process identification number for process to be initialized
+*   OUTPUTS: none
+*   RETURN VALUE: none
+*	SIDE EFFECTS : Creates a new PCB for the process with requested PID
+*/
 void pcb_init(int pid){
     int i;
     curr = pid;
     
+    /* Create PCB for current process and assign PID */
     pcb_t* pcb= (pcb_t *)(KSTACK_BOT - PCB_SIZE * pid);
     pcb->pid=pid;
-    pcb->file_array[0].read = terminal_read_wrap;///init stdin and stdout     /* compiler error */
-    pcb->file_array[0].write=NULL;
-    pcb->file_array[0].open=NULL;
-    pcb->file_array[0].close=NULL;
-    pcb->file_array[0].flag=1;
 
-    pcb->file_array[1].read=NULL;
-    pcb->file_array[1].write= terminal_write_wrap;                           /* compiler error */
-    pcb->file_array[1].open=NULL;
-    pcb->file_array[1].close=NULL;
-    pcb->file_array[1].flag=1;
+    /* Fill in file descriptors for reserved file stdin for every new process */
+    pcb->file_array[0].read  = terminal_read_wrap;///init stdin and stdout
+    pcb->file_array[0].write = NULL;
+    pcb->file_array[0].open  = NULL;
+    pcb->file_array[0].close = NULL;
+    pcb->file_array[0].flag  = 1;
 
-    for(i=2;i<FDESC_SIZE;i++){
-        pcb->file_array[i].flag=0;
+    /* Fill in file descriptors for reserved file stdout for every new process */
+    pcb->file_array[1].read  = NULL;
+    pcb->file_array[1].write = terminal_write_wrap;
+    pcb->file_array[1].open  = NULL;
+    pcb->file_array[1].close = NULL;
+    pcb->file_array[1].flag  = 1;
+
+    /* Set remaining files as unused (flag = 0) for every new process */
+    for (i = 2; i < FDESC_SIZE; i++){
+        pcb->file_array[i].flag = 0;
     }
-    if(pid==0){
-        pcb->parent=NULL;
+
+    /* Check if this is the first process, and if it is, set parent ptr to NULL */
+    if (pid == 0){
+        pcb->parent = NULL;
     }
     else{
+        /* Set PCB parent address relative to previous PCB */
         pcb->parent = (int32_t *)(KSTACK_BOT - PCB_SIZE * pid + PCB_SIZE);
     }
 }
@@ -79,7 +97,6 @@ int32_t halt(uint8_t status){
 *   RETURN VALUE: 0 on success, -1 on failure
 *	SIDE EFFECTS : Switches processor to user mode to run given user program
 */
-
 int32_t execute(const uint8_t * command){
     uint8_t inFile[CMD_LIMIT];  /* name of executable file           */
     uint32_t v_addr;            /* virtual addr of first instruction */
@@ -111,9 +128,11 @@ int32_t execute(const uint8_t * command){
 
 */
 
+    /* Create new PCB */
+    pcb_t* pcb = (pcb_t *)(KSTACK_BOT - PCB_SIZE * curr);
 
     tss.esp0 = KSTACK_BOT + PCB_SIZE - PCB_SIZE * curr - 4;
-    pcb_t* pcb = (pcb_t *)(KSTACK_BOT - PCB_SIZE * curr);
+    
   /* __asm__ volatile(
         "cli
         movl %%ebp,%0  \n 

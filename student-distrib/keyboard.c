@@ -257,9 +257,9 @@ int terminal_write(char * buf){//////////////////////////////need change
 }
 
 int terminal_write_wrap(uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t count) {
-	return terminal_write(buf);
+	return terminal_write((char *)buf);
 }
 
 int terminal_read_wrap(uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t count) {
-	return terminal_read(buf);
+	return terminal_read((char *)buf);
 }
