@@ -6,6 +6,7 @@
 #include "filesys_read.h"
 #include "keyboard.h"
 #include "paging.h"
+#include "interrupt_service_wrapper.h"
 
 #define FDESC_SIZE          8
 #define CMD_LIMIT         129

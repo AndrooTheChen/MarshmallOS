@@ -8,6 +8,7 @@
 .globl  rtc_handler_asm 
 .globl syscall_asm
 .globl from_syscall
+.globl switch_usr_mode
 .align   4
  
 keyboard_handler_asm:
@@ -64,6 +65,26 @@ syscall_asm:
     addl $4,%esp
     iret
 
+switch_usr_mode:
+    cli
+    movw $USER_DS,%ax
+    movw %ax, %ds
+    movw %ax, %es
+    movw %ax, %fs
+    movw %ax, %gs
+
+    movl %esp, %eax
+    pushl $USER_DS
+    pushl $0x083FFFF7
+    pushf
+    /* reset IF flag */
+    popl %eax
+    orl $0x200, %eax
+    pushl %eax
+    pushl $USER_CS
+    movl 20(%esp), %eax
+    pushl %eax
+    iret
 
 
 sys_call_table:

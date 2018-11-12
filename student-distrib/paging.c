@@ -7,6 +7,12 @@
 #define _8MB_ 1024*8
 #define program_pageIdx 32
 
+#define kernel_dir page_dir[1]
+#define initial_dir page_dir[0]
+#define SINGLE_PAGE_DIR_OFFSET 1024
+#define USER_LEVEL_OFFSET  (2*1024)
+#define USER_SPACE_START 32
+
 /*
  *void pdt_init_kb(int idx)
  *     DESCRIPTION: PDT entery 4KB initialization 
@@ -156,7 +162,7 @@ void paging_init(int pid){
 
             //set PG(bit31) and protection(bit0) of cr0
             "movl %%cr0, %%ebx         \n"
-            "orl $0x80000001, %%ebx   \n"
+            "orl $0x80000000, %%ebx   \n"
             "movl %%ebx, %%cr0"
             : /* no output */
             : "a"((&process[pid]))
@@ -165,3 +171,46 @@ void paging_init(int pid){
  
 }
 
+
+/*Initialize page directory's entry to all 0
+ *Input: ind the index of page directory
+ *output: none
+ */
+void page_directory_init(int ind)
+{
+    #define d(i) page_dir[i]
+    d(ind).present = 0;
+    d(ind).read_write =1;
+    d(ind).user_supervisor=0;
+    d(ind). write_through =0;
+    d(ind). cache_disabled=0;
+    d(ind). accessed   =0;
+    d(ind). reserved   =0;
+    d(ind). size       =0;
+    d(ind). zero       =0;
+    d(ind). avail      =0;
+    d(ind). aligned_address=0;
+}
+
+/*setting up task page
+input: ind= index of pages
+output: none*/
+void setup_task_page(int ind)
+{
+    page_directory_init(USER_SPACE_START);
+    page_dir[USER_SPACE_START].present = 1;
+    page_dir[USER_SPACE_START].user_supervisor = 1;
+    page_dir[USER_SPACE_START].size = 1; //4mb page? not sure
+    page_dir[USER_SPACE_START].aligned_address = (ind * SINGLE_PAGE_DIR_OFFSET) + USER_LEVEL_OFFSET; //start at 8mb + ind*4mb
+    __asm__ ( "leal page_dir,%eax;"
+              "movl %eax,%cr3;"
+
+              "movl %cr4, %eax;"
+              "orl $0x00000010, %eax;"
+              "movl %eax, %cr4;"
+
+              "movl %cr0,%eax;"
+              "orl $0x80000001, %eax;"
+              "movl %eax,%cr0;"
+    );
+}

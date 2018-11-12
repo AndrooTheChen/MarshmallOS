@@ -430,13 +430,13 @@ int RTC_read_test() {
 int exec_valid_file_test() {
 	TEST_HEADER;
 
-	int i;
+	int i = 0;
 	char * cmd[2] = {"shell", "testprint"};	/* valid filenames */
 	uint8_t dummyBuffer[CMD_LIMIT];
 	uint32_t dummy_addr;
 
 	/* Make sure each execute returns 0 for these valid files */
-	for (i = 0; i < 2; i++) {
+	//for (i = 0; i < 2; i++) {
 		/* return 0 test */
 		if (verify_file((uint8_t *)cmd[i], dummyBuffer, &dummy_addr) != 0) {		
 			return FAIL;
@@ -446,10 +446,10 @@ int exec_valid_file_test() {
 		if (strncmp((char *)dummyBuffer, cmd[i], sizeof(cmd[i])) != 0) {
 			return FAIL;
 		}
-	}
+	//}
 
 	/* Print starting virtual address from bytes 24-27 */
-	printf("starting v_addr: %d\n", dummy_addr);
+	printf("starting v_addr: %x\n", dummy_addr);
 
 	return PASS;
 }
@@ -550,7 +550,8 @@ void launch_tests(){
 	//terminal_write("qwertyuiop[]\asdfghjkl;'zxcvbnm,./bfgdhfdgfdgfdgfdjkgfodjglkfjdlkgkfjkdglkjflkdjklgjklfjlkdjlgjfkdjgofiejdgprokepokpofkld;lgjhfl;djhn;lfmblc;lkfl;dk;lrfkpoerkpogkd;lkfl;gk12323432543267687686786565");
 
 	/* System calls tests */
-	// TEST_OUTPUT("exec_valid_file_test()", exec_valid_file_test());
+	//clear();
+	 //TEST_OUTPUT("exec_valid_file_test()", exec_valid_file_test());
 	// TEST_OUTPUT("exec_invalid_file_test()", exec_invalid_file_test());
 	// TEST_OUTPUT("exec_null_file_test()", exec_invalid_file_test());
 

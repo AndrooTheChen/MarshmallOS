@@ -386,3 +386,14 @@ int open_f_wrapper(uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t count
 int close_f_wrapper(uint32_t inode,uint32_t offset, uint8_t* buf, uint32_t count){
     return close_f();
 }
+
+
+/*load executable 
+input: fname = file name, dest: destination
+output: 0 if successful, -1 if fail*/
+int32_t load_executable(char * fname, char* dest)
+{
+    if(read_f_by_name((uint8_t*)fname, 0, (uint8_t*)dest, 0x7fffffff)!= -1 )
+        return 0;
+    else return -1;
+}

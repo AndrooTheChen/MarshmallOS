@@ -18,12 +18,16 @@
 #define EIGHT_MB           0x800000
 #define EIGHT_KB           0x2000
 #define ASM                1
+#define MEM_OFFSET         ADDR_OFFSET
 
 /* Current PID */
 static int curr = 0;
 
 /* Table of active and inactive processes (active = 1, inactive = 0) */
 int proc_state[PROC_NUM] = {0, 0, 0, 0, 0, 0};
+
+static int usr_start = 0;
+static int k_stack_bottom = ((0x0800000)-(0x2000));
 
 
 /*
@@ -42,7 +46,9 @@ void pcb_init(int pid){
     
     /* Create PCB for current process and assign PID */
     //pcb_t* pcb= (pcb_t *)(KSTACK_BOT - PCB_SIZE * pid);
-    pcb_t * pcb = (pcb_t *)(EIGHT_MB - EIGHT_KB * pid);
+   // pcb_t * pcb = (pcb_t *)(EIGHT_MB - EIGHT_KB * (pid + 1));
+    k_stack_bottom -= PCB_SIZE;
+    pcb_t * pcb = (pcb_t *) k_stack_bottom;
     pcb->pid = pid;
 
     /* Fill in file descriptors for reserved file stdin for every new process */
@@ -70,7 +76,8 @@ void pcb_init(int pid){
     }
     else {
         /* Set PCB parent address relative to previous PCB */
-        pcb->parent = (int32_t *)(KSTACK_BOT - PCB_SIZE * pid + PCB_SIZE);
+        //pcb->parent = (int32_t *)(KSTACK_BOT - PCB_SIZE * pid + PCB_SIZE);
+        pcb->parent = (int32_t *)(k_stack_bottom + PCB_SIZE);
     }
 }
 
@@ -135,42 +142,46 @@ int32_t execute(const uint8_t * command){
     paging_init(pid);
 
     //u User-level Program Loader
-    read_dentry_by_name(inFile, &d);
-    read_f(d.inode, 0, (uint8_t)0x08048000, 0x400000);
-    
+     read_dentry_by_name(inFile, &d);
+     read_f(d.inode, 0, (uint8_t)0x08048000, 0x400000);
 
+    /* Save starting virtual address */
+    usr_start = v_addr;
 
-    /* Create new PCB */
-    //pcb_t* pcb = (pcb_t *)(KSTACK_BOT - PCB_SIZE * curr);
+    /* Update TSS esp0 fields */
+    //tss.esp0 = KSTACK_BOT + PCB_SIZE - PCB_SIZE * curr - 4;
+    //tss.esp0 = EIGHT_MB - 8; // I have no fucking clue
+    tss.esp0 = k_stack_bottom + PCB_SIZE - MEM_OFFSET; // again, no fucking clue
 
-    /* Update TSS fields */
-    tss.esp0 = KSTACK_BOT + PCB_SIZE - PCB_SIZE * curr - 4;
+    pcb_t* pcb = (pcb_t*) k_stack_bottom;
+    asm volatile("movl %%esp, %0" : "=r" (pcb->parent_esp) );
+    asm volatile("movl %%ebp, %0" : "=r" (pcb->parent_ebp) );
+    asm volatile("movl %0, %%ebp" :: "r" (tss.esp0) );
+    asm volatile("movl %0, %%esp" :: "r" (tss.esp0) );
 
-    /* Update current PID to PID just created */
-    curr = pid;
+    /* Context switch */
+    switch_usr_mode(usr_start);
 
     /* Set up IRET context switch */
-    asm volatile(
-        "cli;"
-        "movl %0, %%ds;"
-        "pushl %1;"
-        "pushl %2;"
-        "pushfl;"
-        "popl %%edx;"
-        "orl %3, %%edx;"
-        "pushl %%edx;"
-        "pushl %4;"
-        "pushl %5;"
-        "iret;"
-        :
-        :
-        "r" (USER_DS),
-        "r" (USER_DS),
-        "r" (0x83FFFFC),
-        "r" (0x200),
-        "r" (USER_CS),
-        "r" (v_addr)
-    );
+    // asm volatile(
+    //     "cli;"
+    //     "mov %0, %%ds;"
+    //     "pushl $0x2B;"
+    //     "pushl $0x83FFFFC;"
+    //     "pushfl;"
+    //     "popl %%edx;"
+    //     "orl $0x200, %%edx;"
+    //     "pushl %%edx;"
+    //     "pushl $0x23;"
+    //     "pushl %1;"
+    //     "iret;"
+    //     :
+    //     :
+    //     "r" (USER_DS),
+    //     "r" (v_addr)
+    // );
+
+
 
     
     
@@ -253,8 +264,7 @@ int32_t execute(const uint8_t * command){
                    user address into v_addr
 */
 int8_t verify_file(const uint8_t * cmd, uint8_t inFile[CMD_LIMIT], uint32_t * v_addr) {
-    int i; //int j;
-    //uint8_t addrBuf[BYTE_LEN];
+    int i;
 
     /* Make sure passed in ptr is not a nullptr */
     if (cmd == NULL) { return -1; }
@@ -277,7 +287,7 @@ int8_t verify_file(const uint8_t * cmd, uint8_t inFile[CMD_LIMIT], uint32_t * v_
     if (strncmp(fileBuf, magicBuf, BYTE_LEN)) { return -1; }
 
     /* Retrieve address for first instruction from bytes 24-27 */
-    read_f_by_name(inFile, START_ADDR, (uint8_t*)v_addr, BYTE_LEN);
+    read_f_by_name(inFile, 24, (uint8_t*)v_addr, BYTE_LEN);
 
     return 0;
 }

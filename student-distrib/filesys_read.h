@@ -67,6 +67,9 @@ int write_f_wrapper(uint32_t inode,uint32_t offset, uint8_t* buf, uint32_t count
 int open_f_wrapper(uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t count);
 int close_f_wrapper(uint32_t inode,uint32_t offset, uint8_t* buf, uint32_t count);
 
+
+int32_t load_executable(char * fname, char* dest);
+
 #endif  /* _FILESYS_READ_H  */  
 ////wrappers
 

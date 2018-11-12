@@ -22,6 +22,8 @@
 /* Number of vectors in the interrupt descriptor table (IDT) */
 #define NUM_VEC     256
 
+#define PAGE_DIRECTORY_SIZE 1024
+
 #ifndef ASM
 
 
@@ -163,6 +165,27 @@ typedef union idt_desc_t {
         uint16_t offset_31_16;
     } __attribute__ ((packed));
 } idt_desc_t;
+
+/* struct for page dir entry */
+typedef union page_directory_t {
+    uint32_t val;
+    struct {
+        uint32_t present     :1;
+        uint32_t read_write  :1;
+        uint16_t user_supervisor: 1;
+        uint32_t write_through  : 1;
+        uint32_t cache_disabled : 1;
+        uint32_t accessed    : 1;
+        uint32_t reserved    : 1;
+        uint32_t size        : 1;
+        uint32_t zero        : 1;
+        uint32_t avail       : 3;
+        uint32_t aligned_address: 20;
+    } __attribute__ ((packed));
+} page_directory_t;
+/* page directory */
+page_directory_t page_dir[PAGE_DIRECTORY_SIZE] __attribute__((aligned(4096))); //aligned by 4k
+
 
 /* The IDT itself (declared in x86_desc.S */
 extern idt_desc_t idt[NUM_VEC];
