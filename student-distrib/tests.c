@@ -449,7 +449,7 @@ int exec_valid_file_test() {
 	}
 
 	/* Print starting virtual address from bytes 24-27 */
-	printf("starting v_addr: %x\n", dummy_addr);
+	printf("starting v_addr: %d\n", dummy_addr);
 
 	return PASS;
 }
@@ -475,7 +475,7 @@ int exec_invalid_file_test() {
 	/* Make sure verify_file returns -1 since we passed an invalid file */
 	if (verify_file(cmd, dummyBuffer, &dummy_addr) == -1) {
 		/* Print starting virtual address from bytes 24-27 */
-		printf("starting v_addr: %x\n", dummy_addr);
+		printf("starting v_addr: %d\n", dummy_addr);
 
 		return PASS;
 	}
@@ -504,7 +504,7 @@ int exec_null_file_test() {
 	/* Make sure verify_file returns -1 since we passed an invalid file */
 	if (verify_file(cmd, dummyBuffer, &dummy_addr) == -1) {
 		/* Print starting virtual address from bytes 24-27 */
-		printf("starting v_addr: %x\n", dummy_addr);
+		printf("starting v_addr: %d\n", dummy_addr);
 		
 		return PASS;
 	}
@@ -550,8 +550,8 @@ void launch_tests(){
 	//terminal_write("qwertyuiop[]\asdfghjkl;'zxcvbnm,./bfgdhfdgfdgfdgfdjkgfodjglkfjdlkgkfjkdglkjflkdjklgjklfjlkdjlgjfkdjgofiejdgprokepokpofkld;lgjhfl;djhn;lfmblc;lkfl;dk;lrfkpoerkpogkd;lkfl;gk12323432543267687686786565");
 
 	/* System calls tests */
-	//TEST_OUTPUT("exec_valid_file_test()", exec_valid_file_test());
-	//TEST_OUTPUT("exec_invalid_file_test()", exec_invalid_file_test());
-	//TEST_OUTPUT("exec_null_file_test()", exec_invalid_file_test());
+	// TEST_OUTPUT("exec_valid_file_test()", exec_valid_file_test());
+	// TEST_OUTPUT("exec_invalid_file_test()", exec_invalid_file_test());
+	// TEST_OUTPUT("exec_null_file_test()", exec_invalid_file_test());
 
 }

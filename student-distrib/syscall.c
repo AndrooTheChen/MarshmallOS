@@ -14,6 +14,9 @@
 #define PROC_NUM           6
 #define PCB_SIZE           0x2000
 #define KSTACK_BOT         0x800000-0x2000
+
+#define EIGHT_MB           0x800000
+#define EIGHT_KB           0x2000
 #define ASM                1
 
 /* Current PID */
@@ -21,6 +24,7 @@ static int curr = 0;
 
 /* Table of active and inactive processes (active = 1, inactive = 0) */
 int proc_state[PROC_NUM] = {0, 0, 0, 0, 0, 0};
+
 
 /*
 * pcb_init
@@ -37,7 +41,8 @@ void pcb_init(int pid){
     curr = pid;
     
     /* Create PCB for current process and assign PID */
-    pcb_t* pcb= (pcb_t *)(KSTACK_BOT - PCB_SIZE * pid);
+    //pcb_t* pcb= (pcb_t *)(KSTACK_BOT - PCB_SIZE * pid);
+    pcb_t * pcb = (pcb_t *)(EIGHT_MB - EIGHT_KB * pid);
     pcb->pid = pid;
 
     /* Fill in file descriptors for reserved file stdin for every new process */
@@ -70,8 +75,6 @@ void pcb_init(int pid){
 }
 
 
-<<<<<<< HEAD
-
 /*
 * get_pid
 *   DESCRIPTION: Finds and returns a valid PID based on how many processes
@@ -81,45 +84,21 @@ void pcb_init(int pid){
 *   INPUTS: none
 *   OUTPUTS: int - PID (0-5)
 *   RETURN VALUE: none
-=======
-/*
-* get_pid
-*   DESCRIPTION: Searches in process table for an unused PID. Returns
-*       first available PID if found and sets in-use bit to 1 in the
-*       process table.
-*
-*   INPUTS: none
-*   OUTPUTS:  PID
-*   RETURN VALUE: PID (0-5) on success, -1 on failure
-*	SIDE EFFECTS : Sets PID entry to used if a free PID is found
->>>>>>> 7394767c8f444da7d862862759aa40200b639c9d
 */
 int get_pid(){
     int i;
 
-<<<<<<< HEAD
     /* Look thru process table for an inactive process (marked 0) and return it */
     for(i = 0; i < PROC_NUM; i++){
         if(proc_state[i] == 0){
-=======
-    for (i = 0; i < PROC_NUM; i++) {
-        if (proc_state[i] == 0){
-            /* set process as in-use and return PID */
-            proc_state[i] = 1;
->>>>>>> 7394767c8f444da7d862862759aa40200b639c9d
             return i;
         }
     }
 
-<<<<<<< HEAD
     /* Return -1 max number of processes allowed are already in use */
-=======
->>>>>>> 7394767c8f444da7d862862759aa40200b639c9d
     return -1;
 }
 
-
-//device_t rtc = { rtc_read, rtc_write, rtc_open, rtc_close };
 
 int32_t halt(uint8_t status){
     return 0;
@@ -154,10 +133,8 @@ int32_t execute(const uint8_t * command){
     paging_init(pid);
 
     //u User-level Program Loader
-
-
     read_dentry_by_name(inFile, &d);
-    read_f(d.inode, 0, (uint8_t)0x08048000, 4000000);
+    read_f(d.inode, 0, (uint8_t)0x08048000, 0x400000);
     
     /* Set process as in-use */
     proc_state[pid] = 1;
@@ -170,6 +147,9 @@ int32_t execute(const uint8_t * command){
 
     /* Update TSS fields */
     tss.esp0 = KSTACK_BOT + PCB_SIZE - PCB_SIZE * curr - 4;
+
+    /* Update current PID to PID just created */
+    curr = pid;
 
     /* Set up IRET context switch */
     asm volatile(
@@ -186,16 +166,15 @@ int32_t execute(const uint8_t * command){
         "iret;"
         :
         :
-        "r" (0x2B),
-        "r" (0x2B),
+        "r" (USER_DS),
+        "r" (USER_DS),
         "r" (0x83FFFFC),
         "r" (0x200),
-        "r" (0x23),
+        "r" (USER_CS),
         "r" (v_addr)
     );
 
-    /* Update current PID to PID just created */
-    curr = pid;
+    
     
   /* __asm__ volatile(
         "cli
